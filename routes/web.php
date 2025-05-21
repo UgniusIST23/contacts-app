@@ -16,5 +16,8 @@ Route::middleware([
 
     Route::prefix('c')->group(function () {
         Route::resource('contacts', ContactController::class);
+        Route::get('contacts-deleted', [ContactController::class, 'trashed'])->name('contacts.trashed');
+        Route::post('contacts/{id}/restore', [ContactController::class, 'restore'])->name('contacts.restore');
+        Route::delete('contacts/{id}/force-delete', [ContactController::class, 'forceDelete'])->name('contacts.forceDelete');
     });
 });

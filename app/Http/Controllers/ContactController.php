@@ -11,6 +11,7 @@ class ContactController extends Controller
     public function index()
     {
         $contacts = Contact::all();
+
         return view('contacts.index', compact('contacts'));
     }
 
@@ -54,11 +55,36 @@ class ContactController extends Controller
         return redirect()->route('contacts.index')->with('success', 'Contact updated successfully!');
     }
 
-    // DELETE
+    // DELETE (Soft Delete)
     public function destroy(Contact $contact)
     {
         $contact->delete();
 
         return redirect()->route('contacts.index')->with('success', 'Contact deleted successfully!');
+    }
+
+    // TRASHED VIEW
+    public function trashed()
+    {
+        $contacts = Contact::onlyTrashed()->get();
+        return view('contacts.trashed', compact('contacts'));
+    }
+
+    // RESTORE
+    public function restore($id)
+    {
+        $contact = Contact::withTrashed()->findOrFail($id);
+        $contact->restore();
+
+        return redirect()->route('contacts.index')->with('success', 'Contact restored!');
+    }
+
+    // PERMANENT DELETE
+    public function forceDelete($id)
+    {
+        $contact = Contact::withTrashed()->findOrFail($id);
+        $contact->forceDelete();
+
+        return redirect()->route('contacts.trashed')->with('success', 'Contact permanently deleted!');
     }
 }
