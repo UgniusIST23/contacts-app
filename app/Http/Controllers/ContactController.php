@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Contact;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ContactFormMail;
 
 class ContactController extends Controller
 {
@@ -11,7 +13,6 @@ class ContactController extends Controller
     public function index()
     {
         $contacts = Contact::all();
-
         return view('contacts.index', compact('contacts'));
     }
 
@@ -30,9 +31,13 @@ class ContactController extends Controller
             'phone' => 'required|string',
         ]);
 
-        Contact::create($request->only('name', 'email', 'phone'));
+        $contact = Contact::create($request->only('name', 'email', 'phone'));
 
-        return redirect()->route('contacts.index')->with('success', 'Contact added successfully!');
+        // MAIL upon create
+        $formData = $request->only('name', 'email', 'phone');
+        Mail::to('test@example.com')->send(new ContactFormMail($formData));
+
+        return redirect()->route('contacts.index')->with('success', 'Kontaktas pridėtas ir laiškas išsiųstas!');
     }
 
     // EDIT
@@ -52,18 +57,17 @@ class ContactController extends Controller
 
         $contact->update($request->only('name', 'email', 'phone'));
 
-        return redirect()->route('contacts.index')->with('success', 'Contact updated successfully!');
+        return redirect()->route('contacts.index')->with('success', 'Kontaktas atnaujintas!');
     }
 
     // DELETE (Soft Delete)
     public function destroy(Contact $contact)
     {
         $contact->delete();
-
-        return redirect()->route('contacts.index')->with('success', 'Contact deleted successfully!');
+        return redirect()->route('contacts.index')->with('success', 'Kontaktas ištrintas!');
     }
 
-    // TRASHED VIEW
+    // TRASHED LIST
     public function trashed()
     {
         $contacts = Contact::onlyTrashed()->get();
@@ -75,8 +79,7 @@ class ContactController extends Controller
     {
         $contact = Contact::withTrashed()->findOrFail($id);
         $contact->restore();
-
-        return redirect()->route('contacts.index')->with('success', 'Contact restored!');
+        return redirect()->route('contacts.index')->with('success', 'Kontaktas atstatytas!');
     }
 
     // PERMANENT DELETE
@@ -84,7 +87,20 @@ class ContactController extends Controller
     {
         $contact = Contact::withTrashed()->findOrFail($id);
         $contact->forceDelete();
+        return redirect()->route('contacts.trashed')->with('success', 'Kontaktas ištrintas visam laikui!');
+    }
 
-        return redirect()->route('contacts.trashed')->with('success', 'Contact permanently deleted!');
+    // SEND EMAIL
+    public function sendEmail(Contact $contact)
+    {
+        $formData = [
+            'name' => $contact->name,
+            'email' => $contact->email,
+            'phone' => $contact->phone,
+        ];
+
+        Mail::to($contact->email)->send(new ContactFormMail($formData));
+
+        return redirect()->route('contacts.index')->with('success', 'Laiškas išsiųstas kontaktui!');
     }
 }
